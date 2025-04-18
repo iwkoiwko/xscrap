@@ -156,3 +156,4 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
 driver.quit()
 print(f"\nData collection complete. Total tweets collected: {total_tweets}")
 print("Data saved to nitter_selenium_data.csv")
+# usunąć duplikaty z pliku i zaimplementowac ai
