@@ -1,72 +1,74 @@
-import twint
-import pandas as pd
-from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import random
+import csv
 
-class TwintScraper:
-    def __init__(self, limit=100, hide_output=True):
-        self.limit = limit
-        self.hide_output = hide_output
+# Simple Nitter scraper using Selenium
+BASE_URL = "https://nitter.net"
+SEARCH_TERMS = [
+    "Rafał Trzaskowski",
+    "Sławomir Mentzen",
+    "Karol Nawrocki",
+    "Szymon Hołownia"
+]
 
-    def fetch_tweets(self, term):
-        """
-        Fetch tweets for a given search term using Twint and return a DataFrame.
-        """
-        c = twint.Config()
-        c.Search = term
-        c.Limit = self.limit
-        c.Pandas = True
-        c.Hide_output = self.hide_output
+# Initialize the WebDriver (you might need to adjust the path to your driver)
+# For example, for Chrome:
+# options = webdriver.ChromeOptions()
+# options.add_argument('--headless') # Run in headless mode (no browser window)
+# driver = webdriver.Chrome(options=options)
+driver = webdriver.Firefox() # Or any other browser driver you have installed
 
-        # Run the search
-        twint.run.Search(c)
+# Open a CSV file for writing
+with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(["Search Term", "Username", "Tweet Text"])  # Write header row
 
-        # Retrieve the DataFrame
-        df = twint.storage.panda.Tweets_df.copy()
-        df['search_term'] = term
-        # Select and rename relevant columns
-        cols = [
-            'search_term', 'id', 'username', 'name', 'date', 'time',
-            'tweet', 'url', 'retweets_count', 'replies_count', 'likes_count'
-        ]
-        return df[cols]
+    for term in SEARCH_TERMS:
+        # Build search URL
+        time.sleep(random.uniform(1, 2))
+        query = term.replace(" ", "+")
+        url = f"{BASE_URL}/search?f=tweets&q={query}"
+        print(f"Searching for: {url}")
 
-    def scrape_terms(self, terms):
-        """
-        Loop through a list of terms and concatenate results.
-        """
-        frames = []
-        for term in terms:
-            print(f"Fetching tweets for: {term}")
-            try:
-                df = self.fetch_tweets(term)
-                frames.append(df)
-            except Exception as e:
-                print(f"Error fetching for '{term}': {e}")
-        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        try:
+            # Fetch the page using Selenium
+            driver.get(url)
 
+            # Wait for the tweet elements to load (adjust timeout if needed)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "timeline-item"))
+            )
 
-if __name__ == "__main__":
-    # Define your search terms
-    terms = [
-        "Rafał Trzaskowski",
-        "Sławomir Mentzen",
-        "Karol Nawrocki",
-        "Szymon Hołownia"
-    ]
+            # Find tweet blocks
+            tweets = driver.find_elements(By.CLASS_NAME, "timeline-item")
+            if not tweets:
+                print(f"No tweets found for '{term}'.")
+                continue
 
-    # Initialize scraper
-    scraper = TwintScraper(limit=50)
+            # Extract data from each tweet
+            for tweet in tweets:
+                try:
+                    username_element = tweet.find_element(By.CSS_SELECTOR, ".fullname")
+                    tweet_text_element = tweet.find_element(By.CSS_SELECTOR, ".tweet-content")
 
-    # Scrape all terms
-    result_df = scraper.scrape_terms(terms)
+                    username = username_element.text.strip()
+                    tweet_text = tweet_text_element.text.strip()
+                    writer.writerow([term, username, tweet_text])
+                    print(f"  - User: {username}, Tweet: {tweet_text[:50]}...") # Print a snippet
+                except Exception as e:
+                    print(f"  - Error extracting data from a tweet: {e}")
 
-    if result_df.empty:
-        print("No tweets found.")
-    else:
-        print(f"Fetched a total of {len(result_df)} tweets.")
-        print(result_df.head())
+        except Exception as e:
+            print(f"Error fetching or processing {url}: {e}")
 
-        # Save to CSV
-        filename = f"tweets_twint_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        result_df.to_csv(filename, index=False, encoding='utf-8-sig')
-        print(f"Results saved to: {filename}")
+        # Polite delay between searches
+        time.sleep(random.uniform(1, 2))
+
+# Close the browser
+driver.quit()
+
+print("Data saved to nitter_selenium_data.csv")
