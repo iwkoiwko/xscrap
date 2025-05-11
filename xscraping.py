@@ -39,7 +39,7 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
         time.sleep(random.uniform(1, 2))
         query = term.replace(" ", "+")
         url = f"{BASE_URL}/search?f=tweets&q={query}&since=2025-03-24&until=&near="
-        
+        print(url)
         try:
             driver.get(url)
             print(f"Navigated to: {url}")
@@ -66,6 +66,7 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
                     
                     new_tweets = 0
                     for tweet in tweets:
+                        time.sleep(random.uniform(2, 3))  
                         try:
                      
                             tweet_id = tweet.get_attribute("data-tweet-id")
@@ -77,6 +78,7 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
                                     tweet_id = str(hash(tweet.text))  
                             
                             if tweet_id in term_tweet_ids:
+                                time.sleep(random.uniform(0, 3))  
                                 continue
                                 
                             term_tweet_ids.add(tweet_id)
@@ -97,6 +99,7 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
                                 new_tweets += 1
                                 term_tweets += 1
                                 total_tweets += 1
+                                time.sleep(random.uniform(0, 3))  
                                 
                             except (StaleElementReferenceException, NoSuchElementException) as e:
                                 print(f"Error extracting data from tweet: {e}")
@@ -135,6 +138,7 @@ with open("nitter_selenium_data.csv", "w", newline="", encoding="utf-8") as csvf
                             driver.execute_script("arguments[0].click();", load_more)
                             time.sleep(2)
                             scroll_attempts = 0  
+                            time.sleep(random.uniform(2, 3))  
                         except:
                             print("Reached end of results - no more tweets to load")
                             break

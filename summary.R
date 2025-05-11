@@ -10,3 +10,4 @@ summary <- file |>
   summarise(count = n())
 
 print(summary)
+write.csv(summary, "C:/Users/Admin/Desktop/xscrapsummary.csv", row.names = FALSE)
